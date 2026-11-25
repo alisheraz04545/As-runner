@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AS RUNNER - Created by ALI SHERAZ</title>
+<!-- Tailwind CSS & Google Fonts -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&amp;family=Outfit:wght@400;600;800;900&amp;family=Teko:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Three.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050811;
+      font-family: 'Outfit', sans-serif;
+    }
+    .cinzel { font-family: 'Cinzel', serif; }
+    .teko { font-family: 'Teko', sans-serif; letter-spacing: 0.05em; }
+
+    /* Animated Glows */
+    .glow-gold {
+      text-shadow: 0 0 15px rgba(251, 191, 36, 0.6), 0 0 30px rgba(245, 158, 11, 0.4);
+    }
+    .glow-cyan {
+      text-shadow: 0 0 15px rgba(56, 189, 248, 0.8), 0 0 35px rgba(14, 165, 233, 0.5);
+    }
+    .glow-red {
+      text-shadow: 0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(220, 38, 38, 0.5);
+    }
+    .box-glow-gold {
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.45), inset 0 0 15px rgba(251, 191, 36, 0.3);
+    }
+    .box-glow-cyan {
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.4);
+    }
+    .box-glow-red {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.5), inset 0 0 15px rgba(248, 113, 113, 0.4);
+    }
+
+    /* Screen Shake Animation */
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-6px, 4px); }
+      40% { transform: translate(6px, -4px); }
+      60% { transform: translate(-4px, -2px); }
+      80% { transform: translate(4px, 2px); }
+    }
+    .shake-screen {
+      animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* Speed lines overlay during Car Mode / Speed Booster / Ramp Boost */
+    .speed-lines {
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(56, 189, 248, 0.15) 0px,
+        rgba(56, 189, 248, 0.15) 2px,
+        transparent 2px,
+        transparent 14px
+      );
+      pointer-events: none;
+    }
+
+    .warp-speed-tunnel {
+      background: radial-gradient(circle, transparent 40%, rgba(6, 182, 212, 0.25) 85%, rgba(2, 132, 199, 0.4) 100%),
+                  repeating-radial-gradient(circle, transparent 0, transparent 15px, rgba(56, 189, 248, 0.1) 16px, transparent 24px);
+      pointer-events: none;
+    }
+
+    /* Pulse animation */
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); opacity: 0.95; }
+      50% { transform: scale(1.04); opacity: 1; }
+    }
+    .btn-pulse {
+      animation: pulseSoft 1.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none bg-slate-950 text-white">
+<!-- 3D Canvas Container -->
+<div class="absolute inset-0 w-full h-full z-0" id="canvas-container"></div>
+<!-- Nitro Speed Lines & Warp Overlay (Car Mode & Speed Booster & Ramp Boost) -->
+<div class="absolute inset-0 z-10 speed-lines opacity-0 transition-opacity duration-300 pointer-events-none" id="speed-overlay"></div>
+<div class="absolute inset-0 z-10 warp-speed-tunnel opacity-0 transition-opacity duration-300 pointer-events-none" id="warp-overlay"></div>
+<!-- Flash Effect on Hit/Collect -->
+<div class="absolute inset-0 bg-red-600/30 z-20 opacity-0 pointer-events-none transition-opacity duration-150" id="screen-flash"></div>
+<!-- HUD Overlay (Ingame) -->
+<div class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-4 hidden" id="hud">
+<!-- Top Bar with Stats & Power-up Status Gauges -->
+<div class="flex flex-col gap-2 w-full pt-1 sm:pt-2">
+<div class="flex items-center justify-between w-full">
+<!-- Distance / Score -->
+<div class="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-lg">
+<svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" fill-rule="evenodd"></path>
+</svg>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] tracking-wider uppercase text-slate-400 font-semibold leading-none">Distance</span>
+<span class="text-lg sm:text-xl font-black teko text-white leading-none mt-0.5" id="score-display">0 m</span>
+</div>
+</div>
+<!-- Center Power-Up Gauges (Flex container holding Car, Magnet, Speed Booster) -->
+<div class="flex items-center gap-2">
+<!-- Car Powerup Timer / Indicator -->
+<div class="flex items-center gap-2 bg-cyan-950/85 backdrop-blur-md border border-cyan-500/50 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="car-hud-gauge">
+<span class="text-cyan-400 text-[10px] sm:text-xs font-black tracking-widest uppercase">TURBO CAR</span>
+<div class="w-12 sm:w-16 h-2 bg-slate-800 rounded-full overflow-hidden border border-cyan-400/40">
+<div class="h-full bg-cyan-400 rounded-full w-full transition-all duration-75" id="car-timer-bar"></div>
+</div>
+</div>
+<!-- Magnet Powerup Timer / Indicator -->
+<div class="flex items-center gap-1.5 sm:gap-2 bg-rose-950/85 backdrop-blur-md border border-rose-500/60 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="magnet-hud-gauge">
+<span class="text-rose-400 text-xs sm:text-sm">🧲</span>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] text-rose-300 font-black tracking-wider uppercase leading-none">MAGNET</span>
+<div class="w-12 sm:w-16 h-1.5 sm:h-2 bg-slate-800 rounded-full overflow-hidden border border-rose-400/40 mt-0.5">
+<div class="h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-full w-full transition-all duration-75" id="magnet-timer-bar"></div>
+</div>
+</div>
+</div>
+<!-- Speed Booster Timer / Indicator -->
+<div class="flex items-center gap-1.5 sm:gap-2 bg-amber-950/85 backdrop-blur-md border border-amber-400/60 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="speed-hud-gauge">
+<span class="text-amber-300 text-xs sm:text-sm">⚡</span>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] text-amber-300 font-black tracking-wider uppercase leading-none">SPEED NITRO</span>
+<div class="w-12 sm:w-16 h-1.5 sm:h-2 bg-slate-800 rounded-full overflow-hidden border border-amber-400/40 mt-0.5">
+<div class="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full w-full transition-all duration-75" id="speed-timer-bar"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Coins and Pause -->
+<div class="flex items-center gap-2 pointer-events-auto">
+<div class="flex items-center gap-1.5 sm:gap-2 bg-slate-900/80 backdrop-blur-md border border-amber-500/40 px-2.5 sm:px-3 py-1.5 rounded-2xl shadow-lg">
+<!-- Animated Coin Icon -->
+<div class="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-yellow-200 border border-yellow-200 shadow flex items-center justify-center text-[10px] font-black text-amber-950">
+            $
+          </div>
+<span class="text-lg sm:text-xl font-black teko text-yellow-300 leading-none" id="coin-display">0</span>
+</div>
+<button class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-slate-700 flex items-center justify-center active:scale-90 transition" id="btn-pause">
+<svg class="w-4 h-4 sm:w-5 sm:h-5 text-slate-200" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" fill-rule="evenodd"></path>
+</svg>
+</button>
+</div>
+</div>
+</div>
+<!-- Center Notification / Floating Hints -->
+<div class="self-center bg-slate-950/80 backdrop-blur-md border border-cyan-500/40 text-cyan-300 text-xs px-4 py-1.5 rounded-full shadow-lg transition-opacity duration-300 opacity-80 mb-2 pointer-events-none font-medium flex items-center gap-1.5" id="popup-hint">
+<span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+      Grab 🧲 Coin Magnet &amp; ⚡ Speed Booster • Hit Jump Ramps • 2x Tap Turbo Car!
+    </div>
+<!-- Bottom Controls Guide (subtle icons for touch feedback) -->
+<div class="flex justify-between items-center px-4 pb-2 text-slate-400/60 text-[11px] font-semibold tracking-wider uppercase">
+<div class="flex items-center gap-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Swipe Lanes / Jump / Slide</span>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div class="flex items-center gap-2 text-cyan-400/80">
+<span>⚡ 2x Tap = Car</span>
+<span class="text-rose-400/80">🧲 Magnet In Sky</span>
+</div>
+</div>
+</div>
+<!-- 1. CINEMATIC CREATOR SPLASH SCREEN (ALI SHERAZ) -->
+<div class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl px-6 transition-all duration-700" id="screen-splash">
+<div class="relative flex flex-col items-center max-w-sm text-center">
+<!-- Ambient Backlight -->
+<div class="absolute -top-16 w-64 h-64 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Presenter Tag -->
+<p class="text-xs uppercase tracking-[0.35em] text-amber-400 font-bold mb-3 animate-pulse">
+        PROUDLY CREATED &amp; DIRECTED BY
+      </p>
+<!-- CREATOR NAME (ALI SHERAZ prominently displayed) -->
+<h1 class="cinzel text-4xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 glow-gold mb-3">
+        ALI SHERAZ
+      </h1>
+<div class="h-0.5 w-28 bg-gradient-to-r from-transparent via-amber-400 to-transparent my-2"></div>
+<p class="text-slate-400 text-xs tracking-widest uppercase font-medium mt-1">
+        Presents High-Octane 3D Endless Adventure
+      </p>
+<!-- Cinematic loading bar -->
+<div class="w-48 h-1 bg-slate-800 rounded-full mt-8 overflow-hidden">
+<div class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 w-0 transition-all duration-1000 ease-out" id="splash-bar"></div>
+</div>
+<p class="text-[10px] text-slate-500 uppercase tracking-widest mt-3">Loading 3D World &amp; Powerups...</p>
+</div>
+</div>
+<!-- 2. MAIN TITLE / MENU SCREEN ("AS RUNNER") -->
+<div class="absolute inset-0 z-40 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-slate-950/70 via-slate-900/40 to-slate-950/90 backdrop-blur-[2px] hidden transition-opacity duration-500 overflow-y-auto" id="screen-menu">
+<!-- Top Branding -->
+<div class="flex items-center justify-between w-full pt-4 max-w-lg">
+<div class="flex items-center gap-1.5">
+<span class="text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Mobile HD</span>
+<span class="text-[11px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Powerups Edition</span>
+</div>
+<div class="text-[11px] text-slate-400 font-medium tracking-wide">
+        Created by <span class="text-amber-400 font-bold">ALI SHERAZ</span>
+</div>
+</div>
+<!-- Title & Hero Info -->
+<div class="flex flex-col items-center text-center my-auto py-4">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs mb-3">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        Ready to Run
+      </div>
+<h1 class="teko text-7xl sm:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-amber-300 glow-gold leading-none tracking-tight">
+        AS RUNNER
+      </h1>
+<p class="text-amber-200/90 text-sm font-semibold tracking-wider uppercase -mt-1 mb-5">
+        Temple Run Re-imagined in 3D
+      </p>
+<!-- Play Button -->
+<button class="btn-pulse relative group px-10 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-black text-2xl teko tracking-wider uppercase shadow-2xl box-glow-gold active:scale-95 transition-transform flex items-center gap-3" id="btn-play">
+<svg class="w-7 h-7 fill-current" viewbox="0 0 24 24">
+<path d="M8 5v14l11-7z"></path>
+</svg>
+<span>START RUNNING</span>
+</button>
+<!-- Feature Badges Grid including Magnet & Speed Booster -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-7 max-w-lg text-left">
+<div class="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
+<div class="text-amber-400 text-xs font-bold flex items-center gap-1">
+<span>👈 👉</span> Lanes &amp; Jumps
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Dodge hurdles, roll under high beams</p>
+</div>
+<div class="bg-slate-900/80 border border-rose-900/50 p-2.5 rounded-xl">
+<div class="text-rose-400 text-xs font-bold flex items-center gap-1">
+<span>🧲 ✨</span> Coin Magnet
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Vacuum all nearby coins from any lane</p>
+</div>
+<div class="bg-slate-900/80 border border-amber-900/50 p-2.5 rounded-xl">
+<div class="text-amber-400 text-xs font-bold flex items-center gap-1">
+<span>⚡ 💨</span> Speed Boost
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Nitro hyper-velocity with invulnerability</p>
+</div>
+<div class="bg-slate-900/80 border border-cyan-900/50 p-2.5 rounded-xl">
+<div class="text-cyan-400 text-xs font-bold flex items-center gap-1">
+<span>🏎️ 🚀</span> Turbo Car
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">2x Tap to smash obstacles &amp; launch ramps</p>
+</div>
+</div>
+</div>
+<!-- Footer Stats / Credits -->
+<div class="flex items-center justify-between w-full max-w-lg pb-2 text-[11px] text-slate-400">
+<div>High Score: <span class="text-amber-400 font-bold" id="menu-highscore">0 m</span></div>
+<div>Sound: <button class="text-slate-300 font-bold underline" id="btn-sound-toggle">ENABLED</button></div>
+</div>
+</div>
+<!-- 3. PAUSE MODAL -->
+<div class="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 hidden" id="screen-pause">
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full text-center shadow-2xl">
+<h2 class="teko text-4xl font-black text-amber-400 mb-2">GAME PAUSED</h2>
+<p class="text-xs text-slate-400 mb-6">Take a breather, the runner awaits.</p>
+<div class="flex flex-col gap-3">
+<button class="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-black teko text-xl tracking-wider active:scale-95 transition" id="btn-resume">
+          RESUME RUN
+        </button>
+<button class="w-full py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs uppercase tracking-wider border border-slate-700 active:scale-95 transition" id="btn-quit">
+          MAIN MENU
+        </button>
+</div>
+</div>
+</div>
+<!-- 4. GAME OVER SCREEN -->
+<div class="absolute inset-0 z-40 bg-gradient-to-t from-slate-950 via-slate-900/90 to-red-950/60 backdrop-blur-md flex flex-col items-center justify-center p-6 hidden" id="screen-gameover">
+<div class="relative bg-slate-900/90 border border-slate-700/80 p-6 rounded-3xl max-w-xs w-full text-center shadow-2xl overflow-hidden">
+<!-- Glow top -->
+<div class="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-24 bg-red-500/20 blur-2xl pointer-events-none"></div>
+<span class="inline-block px-3 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest border border-red-500/30 mb-2">
+        CRASHED!
+      </span>
+<h2 class="teko text-5xl font-black text-white leading-none mb-1">
+        RUN TERMINATED
+      </h2>
+<p class="text-[11px] text-slate-400 uppercase tracking-wider mb-5">AS RUNNER • ALI SHERAZ</p>
+<!-- Score Breakdown Card -->
+<div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 mb-5 flex justify-around items-center">
+<div>
+<span class="text-[10px] uppercase text-slate-500 font-bold block">Distance</span>
+<span class="teko text-3xl font-black text-amber-300 leading-none" id="final-score">0 m</span>
+</div>
+<div class="h-8 w-px bg-slate-800"></div>
+<div>
+<span class="text-[10px] uppercase text-slate-500 font-bold block">Coins Collected</span>
+<span class="teko text-3xl font-black text-yellow-400 leading-none" id="final-coins">0</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-2.5">
+<button class="btn-pulse w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black teko text-2xl tracking-wider uppercase box-glow-gold active:scale-95 transition" id="btn-restart">
+          RUN AGAIN
+        </button>
+<button class="w-full py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs tracking-wider uppercase border border-slate-700 active:scale-95 transition" id="btn-menu-from-over">
+          MAIN MENU
+        </button>
+</div>
+</div>
+</div>
+<!-- AUDIO SYNTHESIS ENGINE (Web Audio API - With Magnet & Speed Boost SFX) -->
+<script>
+    class SoundController {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playCoin() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(987.77, now); // B5
+        osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.1); // E6
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      }
+      playMagnetChime() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Resonant electric magnetic shimmer
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.4 + idx * 0.05);
+          gain.gain.setValueAtTime(0.12, now + idx * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.05);
+          osc.stop(now + 0.65);
+        });
+      }
+      playSpeedBoost() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Futuristic supersonic warp whoosh
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(120, now);
+        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.35);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(240, now);
+        osc2.frequency.exponentialRampToValueAtTime(1400, now + 0.4);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.55);
+        osc2.stop(now + 0.55);
+      }
+      playMagneticPull() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(700, now);
+        osc.frequency.exponentialRampToValueAtTime(1100, now + 0.07);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      }
+      playWhoosh() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(480, now + 0.08);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.18);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+      playJump() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.exponentialRampToValueAtTime(580, now + 0.16);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      }
+      playRampLaunch() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(140, now);
+        osc1.frequency.exponentialRampToValueAtTime(720, now + 0.25);
+        osc1.frequency.exponentialRampToValueAtTime(320, now + 0.45);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(280, now);
+        osc2.frequency.exponentialRampToValueAtTime(1100, now + 0.22);
+
+        gain.gain.setValueAtTime(0.28, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.46);
+        osc2.stop(now + 0.46);
+      }
+      playSlide() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(360, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.22);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      }
+      playCarEngine() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.exponentialRampToValueAtTime(260, now + 0.35);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+      playCrash() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const bufferSize = this.ctx.sampleRate * 0.4;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.exponentialRampToValueAtTime(60, now + 0.35);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+        noise.stop(now + 0.45);
+      }
+    }
+    const sound = new SoundController();
+  </script>
+<!-- 3D GAME LOGIC (Three.js Implementation) -->
+<script>
+    // Game States
+    const STATE_SPLASH = 0;
+    const STATE_MENU = 1;
+    const STATE_PLAYING = 2;
+    const STATE_PAUSED = 3;
+    const STATE_GAMEOVER = 4;
+
+    let gameState = STATE_SPLASH;
+
+    // Movement Lane definitions (-1: Left, 0: Center, 1: Right)
+    const LANE_WIDTH = 2.4;
+    const LANES = [-LANE_WIDTH, 0, LANE_WIDTH];
+
+    let currentLane = 1; // 0: Left, 1: Center, 2: Right
+    let targetX = 0;
+    let distanceRun = 0;
+    let coinsCollected = 0;
+    let highScore = localStorage.getItem('as_runner_highscore') || 0;
+
+    // Jump & Slide Physics Variables
+    let playerY = 0;
+    let velocityY = 0;
+    const GRAVITY = -38;
+    const JUMP_FORCE = 14.5;
+    const RAMP_JUMP_FORCE = 22.0;
+    let isGrounded = true;
+    let isSliding = false;
+    let slideTimer = 0;
+    const SLIDE_DURATION = 0.65;
+    let pendingSlide = false;
+    let isRampLaunching = false;
+
+    // Car Mode (Summoned by double tap)
+    let isCarMode = false;
+    let carModeTimer = 0;
+    const CAR_MODE_DURATION = 5.5;
+    let carCooldown = 0;
+
+    // POWER-UP SYSTEM: Coin Magnet & Speed Booster
+    let isMagnetActive = false;
+    let magnetTimer = 0;
+    const MAGNET_DURATION = 8.5; // seconds
+
+    let isSpeedBoostActive = false;
+    let speedBoostTimer = 0;
+    const SPEED_BOOST_DURATION = 6.5; // seconds
+
+    // Speed Variables
+    let baseSpeed = 22;
+    let currentSpeed = baseSpeed;
+    const MAX_SPEED = 45;
+
+    // Three.js Core Variables
+    let scene, camera, renderer;
+    let playerGroup, characterModel, carModel;
+    let characterLegs = [], characterArms = [];
+    let playerShieldMesh; // Electric aura for speed booster
+    let groundTiles = [];
+    let activeObstacles = [];
+    let activeCoins = [];
+    let activeRamps = [];
+    let activePowerups = []; // Pickups on track (Magnet & Speed Booster)
+    let particles = [];
+
+    const CHUNK_LENGTH = 45;
+    const NUM_CHUNKS = 5;
+
+    // Touch Handling Variables
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let lastTapTime = 0;
+
+    // Initialize 3D Engine
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // 1. Scene with atmospheric fog
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a1020);
+      scene.fog = new THREE.FogExp2(0x0a1020, 0.016);
+
+      // 2. Camera setup for cinematic third-person view
+      camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 350);
+      camera.position.set(0, 4.2, 5.8);
+      camera.lookAt(0, 1.8, -6);
+
+      // 3. Renderer with antialiasing and shadows
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // 4. Lights
+      const hemiLight = new THREE.HemisphereLight(0xfff3d1, 0x1f293d, 0.75);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xfffae6, 1.25);
+      dirLight.position.set(15, 28, 10);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+      dirLight.shadow.camera.near = 1;
+      dirLight.shadow.camera.far = 80;
+      const d = 16;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      scene.add(dirLight);
+
+      const canyonGlow = new THREE.DirectionalLight(0x06b6d4, 0.4);
+      canyonGlow.position.set(-10, -5, -20);
+      scene.add(canyonGlow);
+
+      // 5. Build Player & Turbo Car & Electric Aura
+      buildPlayer();
+
+      // 6. Build Procedural Environment Chunks
+      for (let i = 0; i < NUM_CHUNKS; i++) {
+        spawnChunk(-i * CHUNK_LENGTH);
+      }
+
+      // 7. Particle System (Speed dust & streak lines)
+      buildParticleSystem();
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    // BUILD PLAYER & CAR & SHIELD AURA
+    function buildPlayer() {
+      playerGroup = new THREE.Group();
+      playerGroup.position.set(0, 0, 0);
+
+      // --- RUNNER CHARACTER ---
+      characterModel = new THREE.Group();
+
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xdfa07a, roughness: 0.6 });
+      const jacketMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3, emissive: 0x78350f });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+
+      // Torso & Tactical Vest
+      const torsoGeo = new THREE.BoxGeometry(0.7, 0.85, 0.45);
+      const torso = new THREE.Mesh(torsoGeo, jacketMat);
+      torso.position.y = 1.35;
+      torso.castShadow = true;
+      characterModel.add(torso);
+
+      // Gold Runner Stripe on back
+      const stripeGeo = new THREE.BoxGeometry(0.2, 0.7, 0.47);
+      const stripe = new THREE.Mesh(stripeGeo, accentMat);
+      stripe.position.y = 1.35;
+      characterModel.add(stripe);
+
+      // Head & Sleek Visor
+      const headGeo = new THREE.BoxGeometry(0.42, 0.44, 0.42);
+      const head = new THREE.Mesh(headGeo, skinMat);
+      head.position.y = 2.0;
+      head.castShadow = true;
+      characterModel.add(head);
+
+      const visorGeo = new THREE.BoxGeometry(0.44, 0.16, 0.25);
+      const visorMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, emissive: 0x0284c7 });
+      const visor = new THREE.Mesh(visorGeo, visorMat);
+      visor.position.set(0, 2.02, -0.16);
+      characterModel.add(visor);
+
+      // Runner Arms
+      const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+      const leftArm = new THREE.Mesh(armGeo, jacketMat);
+      leftArm.position.set(-0.48, 1.4, 0);
+      leftArm.castShadow = true;
+      characterModel.add(leftArm);
+
+      const rightArm = new THREE.Mesh(armGeo, jacketMat);
+      rightArm.position.set(0.48, 1.4, 0);
+      rightArm.castShadow = true;
+      characterModel.add(rightArm);
+
+      characterArms = [leftArm, rightArm];
+
+      // Runner Legs
+      const legGeo = new THREE.BoxGeometry(0.24, 0.85, 0.26);
+      const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+      leftLeg.position.set(-0.22, 0.55, 0);
+      leftLeg.castShadow = true;
+      characterModel.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+      rightLeg.position.set(0.22, 0.55, 0);
+      rightLeg.castShadow = true;
+      characterModel.add(rightLeg);
+
+      characterLegs = [leftLeg, rightLeg];
+
+      playerGroup.add(characterModel);
+
+      // --- TURBO CAR (Summoned on Double Tap) ---
+      carModel = new THREE.Group();
+
+      const carBodyMat = new THREE.MeshStandardMaterial({ 
+        color: 0x0ea5e9, 
+        metalness: 0.8, 
+        roughness: 0.2,
+        emissive: 0x0369a1
+      });
+      const carTrimMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.1 });
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, transparent: true, opacity: 0.75 });
+
+      const carBodyGeo = new THREE.BoxGeometry(1.6, 0.55, 2.8);
+      const carBody = new THREE.Mesh(carBodyGeo, carBodyMat);
+      carBody.position.y = 0.55;
+      carBody.castShadow = true;
+      carModel.add(carBody);
+
+      const canopyGeo = new THREE.BoxGeometry(1.2, 0.45, 1.4);
+      const canopy = new THREE.Mesh(canopyGeo, glassMat);
+      canopy.position.set(0, 0.95, 0.1);
+      carModel.add(canopy);
+
+      const cStripeGeo = new THREE.BoxGeometry(0.3, 0.57, 2.82);
+      const cStripe = new THREE.Mesh(cStripeGeo, carTrimMat);
+      cStripe.position.y = 0.55;
+      carModel.add(cStripe);
+
+      const thrusterGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16);
+      thrusterGeo.rotateX(Math.PI / 2);
+      const thrusterMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+      const leftThruster = new THREE.Mesh(thrusterGeo, thrusterMat);
+      leftThruster.position.set(-0.45, 0.5, 1.45);
+      carModel.add(leftThruster);
+
+      const rightThruster = new THREE.Mesh(thrusterGeo, thrusterMat);
+      rightThruster.position.set(0.45, 0.5, 1.45);
+      carModel.add(rightThruster);
+
+      const wheelGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.28, 16);
+      wheelGeo.rotateZ(Math.PI / 2);
+      const wheelPositions = [
+        [-0.85, 0.32, -0.9],
+        [0.85, 0.32, -0.9],
+        [-0.85, 0.32, 0.9],
+        [0.85, 0.32, 0.9]
+      ];
+
+      wheelPositions.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.position.set(pos[0], pos[1], pos[2]);
+        wheel.castShadow = true;
+        carModel.add(wheel);
+      });
+
+      const underGlow = new THREE.PointLight(0x00f0ff, 1.2, 4);
+      underGlow.position.set(0, 0.2, 0);
+      carModel.add(underGlow);
+
+      carModel.visible = false;
+      playerGroup.add(carModel);
+
+      // --- SPEED BOOST ELECTRIC SHIELD / AURA ---
+      const shieldGeo = new THREE.SphereGeometry(1.4, 16, 16);
+      const shieldMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.55
+      });
+      playerShieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+      playerShieldMesh.position.y = 1.2;
+      playerShieldMesh.visible = false;
+      playerGroup.add(playerShieldMesh);
+
+      scene.add(playerGroup);
+    }
+
+    // CREATE 3D COIN MAGNET PICKUP MESH
+    function createMagnetPickupMesh() {
+      const magnetGroup = new THREE.Group();
+
+      // Curved Horseshoe body
+      const archCurve = new THREE.TorusGeometry(0.55, 0.15, 14, 24, Math.PI);
+      const redMat = new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        roughness: 0.25,
+        metalness: 0.6,
+        emissive: 0x991b1b
+      });
+      const arch = new THREE.Mesh(archCurve, redMat);
+      arch.rotation.z = Math.PI; // Opening faces downward or outward
+      arch.position.y = 0.5;
+      magnetGroup.add(arch);
+
+      // Two Silver Poles with Red & Blue magnetic tips
+      const tipGeo = new THREE.BoxGeometry(0.28, 0.35, 0.28);
+      const silverMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
+      const blueMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, emissive: 0x1d4ed8 });
+
+      // Left Pole (North - Red/Silver)
+      const leftPole = new THREE.Mesh(tipGeo, silverMat);
+      leftPole.position.set(-0.55, 0.3, 0);
+      magnetGroup.add(leftPole);
+
+      const leftCap = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.14, 0.3), redMat);
+      leftCap.position.set(-0.55, 0.1, 0);
+      magnetGroup.add(leftCap);
+
+      // Right Pole (South - Blue/Silver)
+      const rightPole = new THREE.Mesh(tipGeo, silverMat);
+      rightPole.position.set(0.55, 0.3, 0);
+      magnetGroup.add(rightPole);
+
+      const rightCap = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.14, 0.3), blueMat);
+      rightCap.position.set(0.55, 0.1, 0);
+      magnetGroup.add(rightCap);
+
+      // Outer Glowing Ring / Magnetic Aura
+      const ringGeo = new THREE.TorusGeometry(0.9, 0.03, 8, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e, wireframe: true });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.name = "magnetRing";
+      magnetGroup.add(ring);
+
+      // Emissive Light
+      const pLight = new THREE.PointLight(0xf43f5e, 1.8, 4.5);
+      pLight.position.set(0, 0.5, 0);
+      magnetGroup.add(pLight);
+
+      return magnetGroup;
+    }
+
+    // CREATE 3D SPEED BOOSTER (NITRO) PICKUP MESH
+    function createSpeedBoosterMesh() {
+      const speedGroup = new THREE.Group();
+
+      // Sleek Nitro Rocket Canister / Lightning Core
+      const canGeo = new THREE.CylinderGeometry(0.26, 0.26, 1.1, 16);
+      const canMat = new THREE.MeshStandardMaterial({
+        color: 0x0284c7,
+        metalness: 0.85,
+        roughness: 0.2,
+        emissive: 0x0369a1
+      });
+      const canister = new THREE.Mesh(canGeo, canMat);
+      speedGroup.add(canister);
+
+      // Gold / Neon Yellow Accent Bands
+      const bandMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xca8a04, roughness: 0.3 });
+      const bandTop = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.12, 16), bandMat);
+      bandTop.position.y = 0.35;
+      speedGroup.add(bandTop);
+
+      const bandBtm = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.12, 16), bandMat);
+      bandBtm.position.y = -0.35;
+      speedGroup.add(bandBtm);
+
+      // Glowing Neon 3D Lightning Emblem on front
+      const boltGeo = new THREE.OctahedronGeometry(0.3, 0);
+      boltGeo.scale(0.5, 1.3, 0.5);
+      const boltMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+      const bolt = new THREE.Mesh(boltGeo, boltMat);
+      bolt.position.set(0, 0, 0.28);
+      speedGroup.add(bolt);
+
+      // Surrounding Electric Halo
+      const haloGeo = new THREE.TorusGeometry(0.75, 0.035, 8, 32);
+      const haloMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      halo.rotation.x = Math.PI / 2;
+      halo.name = "speedHalo";
+      speedGroup.add(halo);
+
+      // Point Light
+      const pLight = new THREE.PointLight(0x38bdf8, 2.0, 5);
+      speedGroup.add(pLight);
+
+      return speedGroup;
+    }
+
+    // PROCEDURAL TRACK & SCENERY SPAWNER
+    function spawnChunk(zPos) {
+      const chunkGroup = new THREE.Group();
+      chunkGroup.position.z = zPos;
+
+      // 1. Stone Path Platform
+      const roadGeo = new THREE.BoxGeometry(LANE_WIDTH * 3 + 1.2, 0.8, CHUNK_LENGTH);
+      const roadMat = new THREE.MeshStandardMaterial({ 
+        color: 0x242a38, 
+        roughness: 0.85, 
+        metalness: 0.1 
+      });
+      const road = new THREE.Mesh(roadGeo, roadMat);
+      road.position.y = -0.4;
+      road.receiveShadow = true;
+      chunkGroup.add(road);
+
+      // Gold Edge Curbs
+      const curbGeo = new THREE.BoxGeometry(0.35, 0.4, CHUNK_LENGTH);
+      const curbMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 });
+      
+      const leftCurb = new THREE.Mesh(curbGeo, curbMat);
+      leftCurb.position.set(-(LANE_WIDTH * 1.5 + 0.6), 0.1, 0);
+      chunkGroup.add(leftCurb);
+
+      const rightCurb = new THREE.Mesh(curbGeo, curbMat);
+      rightCurb.position.set((LANE_WIDTH * 1.5 + 0.6), 0.1, 0);
+      chunkGroup.add(rightCurb);
+
+      // Lane dividers
+      const dashGeo = new THREE.BoxGeometry(0.08, 0.02, 3);
+      const dashMat = new THREE.MeshBasicMaterial({ color: 0x475569 });
+
+      for (let z = -CHUNK_LENGTH / 2 + 3; z < CHUNK_LENGTH / 2; z += 6) {
+        const leftDash = new THREE.Mesh(dashGeo, dashMat);
+        leftDash.position.set(-LANE_WIDTH / 2, 0.01, z);
+        chunkGroup.add(leftDash);
+
+        const rightDash = new THREE.Mesh(dashGeo, dashMat);
+        rightDash.position.set(LANE_WIDTH / 2, 0.01, z);
+        chunkGroup.add(rightDash);
+      }
+
+      // 2. Canyon & Valley Scenery
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.9 });
+      const foliageMat = new THREE.MeshStandardMaterial({ color: 0x065f46, roughness: 0.8 });
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.9 });
+
+      for (let side = -1; side <= 1; side += 2) {
+        for (let i = 0; i < 4; i++) {
+          const rockSize = 3 + Math.random() * 4;
+          const rockGeo = new THREE.DodecahedronGeometry(rockSize, 0);
+          const rock = new THREE.Mesh(rockGeo, rockMat);
+          const xOffset = side * (5.5 + Math.random() * 8);
+          const zOffset = -CHUNK_LENGTH / 2 + (i * 11) + Math.random() * 4;
+          rock.position.set(xOffset, rockSize * 0.4 - 1, zOffset);
+          rock.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+          rock.receiveShadow = true;
+          chunkGroup.add(rock);
+
+          if (Math.random() > 0.3) {
+            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.45, 3.5, 6);
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.set(xOffset + side * 1.5, 1.75, zOffset + 2);
+            chunkGroup.add(trunk);
+
+            const leavesGeo = new THREE.ConeGeometry(1.8, 3.8, 6);
+            const leaves = new THREE.Mesh(leavesGeo, foliageMat);
+            leaves.position.set(xOffset + side * 1.5, 4.2, zOffset + 2);
+            leaves.castShadow = true;
+            chunkGroup.add(leaves);
+          }
+        }
+      }
+
+      scene.add(chunkGroup);
+      groundTiles.push(chunkGroup);
+
+      // Populate Gameplay Objects
+      if (zPos < -15) {
+        populateChunkGameplay(zPos);
+      }
+    }
+
+    // BUILD JUMP RAMP MESH
+    function createJumpRampMesh() {
+      const rampGroup = new THREE.Group();
+
+      const rampBodyGeo = new THREE.BoxGeometry(1.8, 0.25, 3.2);
+      const rampBodyMat = new THREE.MeshStandardMaterial({
+        color: 0x334155,
+        roughness: 0.6,
+        metalness: 0.4
+      });
+      const rampBody = new THREE.Mesh(rampBodyGeo, rampBodyMat);
+      rampBody.rotation.x = 0.26;
+      rampBody.position.set(0, 0.42, 0);
+      rampBody.castShadow = true;
+      rampBody.receiveShadow = true;
+      rampGroup.add(rampBody);
+
+      const railGeo = new THREE.BoxGeometry(0.12, 0.35, 3.25);
+      const railMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0x92400e });
+      
+      const leftRail = new THREE.Mesh(railGeo, railMat);
+      leftRail.rotation.x = 0.26;
+      leftRail.position.set(-0.92, 0.55, 0);
+      rampGroup.add(leftRail);
+
+      const rightRail = new THREE.Mesh(railGeo, railMat);
+      rightRail.rotation.x = 0.26;
+      rightRail.position.set(0.92, 0.55, 0);
+      rampGroup.add(rightRail);
+
+      const arrowMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+      for (let i = -1; i <= 1; i++) {
+        const chevronGroup = new THREE.Group();
+        chevronGroup.rotation.x = 0.26;
+        chevronGroup.position.set(0, 0.56 + (i * -0.22), i * 0.85);
+
+        const wingGeo = new THREE.BoxGeometry(0.55, 0.05, 0.12);
+        
+        const leftWing = new THREE.Mesh(wingGeo, arrowMat);
+        leftWing.position.set(-0.24, 0, 0.08);
+        leftWing.rotation.y = 0.65;
+        chevronGroup.add(leftWing);
+
+        const rightWing = new THREE.Mesh(wingGeo, arrowMat);
+        rightWing.position.set(0.24, 0, 0.08);
+        rightWing.rotation.y = -0.65;
+        chevronGroup.add(rightWing);
+
+        rampGroup.add(chevronGroup);
+      }
+
+      const beaconLight = new THREE.PointLight(0x06b6d4, 1.8, 4.5);
+      beaconLight.position.set(0, 0.8, -1.2);
+      rampGroup.add(beaconLight);
+
+      return rampGroup;
+    }
+
+    // SPAWN ELEVATED COIN ARC
+    function spawnCoinArc(lane, startZ, endZ, peakHeight, count = 5) {
+      const zStep = (endZ - startZ) / (count - 1);
+      for (let i = 0; i < count; i++) {
+        const coinZ = startZ + (i * zStep);
+        const t = i / (count - 1);
+        const heightY = 0.85 + (4 * t * (1 - t) * (peakHeight - 0.85));
+
+        const coinMesh = createCoinMesh();
+        coinMesh.position.set(LANES[lane], heightY, coinZ);
+        scene.add(coinMesh);
+
+        activeCoins.push({
+          mesh: coinMesh,
+          lane: lane,
+          z: coinZ,
+          y: heightY,
+          baseY: heightY,
+          collected: false
+        });
+      }
+    }
+
+    // POPULATE OBSTACLES, POWER-UPS, RAMPS & COINS
+    function populateChunkGameplay(chunkZ) {
+      const spawnZPoints = [-14, -26, -38];
+
+      spawnZPoints.forEach(offsetZ => {
+        const worldZ = chunkZ + offsetZ;
+        const obstacleLane = Math.floor(Math.random() * 3);
+        const randSeed = Math.random();
+
+        // 1. SPAWN POWER-UP PICKUPS (Coin Magnet or Speed Booster)
+        // Approx 22% chance per chunk interval to spawn a powerup in a free lane
+        if (randSeed > 0.78) {
+          const powerLane = (obstacleLane + 1) % 3;
+          const isMagnet = Math.random() > 0.5;
+          const powerMesh = isMagnet ? createMagnetPickupMesh() : createSpeedBoosterMesh();
+          const powerType = isMagnet ? 'magnet' : 'speed';
+          
+          powerMesh.position.set(LANES[powerLane], 1.1, worldZ);
+          scene.add(powerMesh);
+
+          activePowerups.push({
+            mesh: powerMesh,
+            type: powerType,
+            lane: powerLane,
+            z: worldZ,
+            collected: false
+          });
+        }
+
+        // 2. CHANCE TO SPAWN JUMP RAMP WITH COIN ARC
+        if (randSeed < 0.20) {
+          const rampLane = obstacleLane;
+          const rampMesh = createJumpRampMesh();
+          rampMesh.position.set(LANES[rampLane], 0, worldZ);
+          scene.add(rampMesh);
+
+          activeRamps.push({
+            mesh: rampMesh,
+            lane: rampLane,
+            z: worldZ,
+            triggered: false
+          });
+
+          // Grand high coin arc through the sky launched by ramp
+          spawnCoinArc(rampLane, worldZ + 1, worldZ - 18, 5.2, 7);
+
+          const sideLane = (rampLane + 1) % 3;
+          for (let c = 0; c < 2; c++) {
+            const coinZ = worldZ + (c * 2.2) - 1;
+            const coinMesh = createCoinMesh();
+            coinMesh.position.set(LANES[sideLane], 0.85, coinZ);
+            scene.add(coinMesh);
+            activeCoins.push({ mesh: coinMesh, lane: sideLane, z: coinZ, y: 0.85, baseY: 0.85, collected: false });
+          }
+          return;
+        }
+
+        // 3. SPAWN OBSTACLES
+        let obstacleMesh;
+        let obsTypeStr = "rock";
+        let minY = 0;
+        let maxY = 1.3;
+
+        if (randSeed < 0.45) {
+          // Low Hurdle (JUMP OVER + COIN ARC)
+          obsTypeStr = "barrier";
+          minY = 0;
+          maxY = 0.85;
+          const geo = new THREE.BoxGeometry(1.9, 0.75, 0.45);
+          const mat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.8 });
+          obstacleMesh = new THREE.Mesh(geo, mat);
+          obstacleMesh.position.set(LANES[obstacleLane], 0.4, worldZ);
+          
+          const hazardGeo = new THREE.BoxGeometry(1.92, 0.2, 0.47);
+          const hazardMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+          const hazard = new THREE.Mesh(hazardGeo, hazardMat);
+          hazard.position.y = 0.1;
+          obstacleMesh.add(hazard);
+
+          spawnCoinArc(obstacleLane, worldZ + 4.5, worldZ - 4.5, 2.7, 5);
+
+        } else if (randSeed < 0.65) {
+          // Ancient Boulder
+          obsTypeStr = "rock";
+          minY = 0;
+          maxY = 1.3;
+          const geo = new THREE.DodecahedronGeometry(0.95, 0);
+          const mat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.95 });
+          obstacleMesh = new THREE.Mesh(geo, mat);
+          obstacleMesh.position.set(LANES[obstacleLane], 0.75, worldZ);
+          obstacleMesh.rotation.set(Math.random(), Math.random(), 0);
+
+          if (Math.random() > 0.4) {
+            spawnCoinArc(obstacleLane, worldZ + 4.0, worldZ - 4.0, 2.9, 5);
+          }
+        } else if (randSeed < 0.85) {
+          // High Overhead Archway (SLIDE UNDER)
+          obsTypeStr = "highBarrier";
+          minY = 1.15;
+          maxY = 2.6;
+          obstacleMesh = new THREE.Group();
+          obstacleMesh.position.set(LANES[obstacleLane], 0, worldZ);
+
+          const pillarGeo = new THREE.BoxGeometry(0.25, 2.5, 0.35);
+          const pillarMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+          const leftPillar = new THREE.Mesh(pillarGeo, pillarMat);
+          leftPillar.position.set(-0.95, 1.25, 0);
+          leftPillar.castShadow = true;
+          obstacleMesh.add(leftPillar);
+
+          const rightPillar = new THREE.Mesh(pillarGeo, pillarMat);
+          rightPillar.position.set(0.95, 1.25, 0);
+          rightPillar.castShadow = true;
+          obstacleMesh.add(rightPillar);
+
+          const beamGeo = new THREE.BoxGeometry(2.1, 0.85, 0.45);
+          const beamMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.7 });
+          const beam = new THREE.Mesh(beamGeo, beamMat);
+          beam.position.set(0, 1.65, 0);
+          beam.castShadow = true;
+          obstacleMesh.add(beam);
+
+          const warnGeo = new THREE.BoxGeometry(2.12, 0.16, 0.47);
+          const warnMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+          const warn = new THREE.Mesh(warnGeo, warnMat);
+          warn.position.set(0, 1.35, 0);
+          obstacleMesh.add(warn);
+
+          for (let c = 0; c < 3; c++) {
+            const coinZ = worldZ + (c * 1.8) - 1.8;
+            const coinMesh = createCoinMesh();
+            coinMesh.position.set(LANES[obstacleLane], 0.35, coinZ);
+            scene.add(coinMesh);
+            activeCoins.push({ mesh: coinMesh, lane: obstacleLane, z: coinZ, y: 0.35, baseY: 0.35, collected: false });
+          }
+        } else {
+          // Ancient Wooden Crate
+          obsTypeStr = "crate";
+          minY = 0;
+          maxY = 1.15;
+          const geo = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+          const mat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.7 });
+          obstacleMesh = new THREE.Mesh(geo, mat);
+          obstacleMesh.position.set(LANES[obstacleLane], 0.6, worldZ);
+        }
+
+        obstacleMesh.castShadow = true;
+        scene.add(obstacleMesh);
+        activeObstacles.push({
+          mesh: obstacleMesh,
+          lane: obstacleLane,
+          z: worldZ,
+          type: obsTypeStr,
+          minY: minY,
+          maxY: maxY
+        });
+
+        // Regular coins in other lanes
+        for (let l = 0; l < 3; l++) {
+          if (l !== obstacleLane && Math.random() > 0.4) {
+            for (let c = 0; c < 3; c++) {
+              const coinZ = worldZ + (c * 2.2) - 2;
+              const coinMesh = createCoinMesh();
+              coinMesh.position.set(LANES[l], 0.85, coinZ);
+              scene.add(coinMesh);
+
+              activeCoins.push({
+                mesh: coinMesh,
+                lane: l,
+                z: coinZ,
+                y: 0.85,
+                baseY: 0.85,
+                collected: false
+              });
+            }
+          }
+        }
+      });
+    }
+
+    // CREATES HIGH-DEF GOLD COIN
+    function createCoinMesh() {
+      const group = new THREE.Group();
+      const coinGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.12, 16);
+      coinGeo.rotateX(Math.PI / 2);
+      const coinMat = new THREE.MeshStandardMaterial({ 
+        color: 0xfbbf24, 
+        metalness: 0.9, 
+        roughness: 0.2,
+        emissive: 0x92400e
+      });
+      const coin = new THREE.Mesh(coinGeo, coinMat);
+      coin.castShadow = true;
+      group.add(coin);
+
+      const starGeo = new THREE.OctahedronGeometry(0.18);
+      const starMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+      const star = new THREE.Mesh(starGeo, starMat);
+      group.add(star);
+
+      return group;
+    }
+
+    // SPEED PARTICLES & NITRO TRAIL
+    function buildParticleSystem() {
+      const count = 180;
+      const geo = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+
+      for (let i = 0; i < count * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 18;
+        positions[i + 1] = Math.random() * 7 + 0.2;
+        positions[i + 2] = -Math.random() * 65;
+      }
+
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0x38bdf8,
+        size: 0.22,
+        transparent: true,
+        opacity: 0.5,
+        blending: THREE.AdditiveBlending
+      });
+
+      const pSystem = new THREE.Points(geo, mat);
+      scene.add(pSystem);
+      particles.push(pSystem);
+    }
+
+    function onWindowResize() {
+      if (!camera || !renderer) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // TOUCH CONTROLS (Swipe detection & Double Tap for Car)
+    function setupTouchAndInput() {
+      const container = window;
+
+      container.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) return;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchStartTime = Date.now();
+
+        const now = Date.now();
+        if (now - lastTapTime < 320 && gameState === STATE_PLAYING) {
+          triggerCarMode();
+        }
+        lastTapTime = now;
+      }, { passive: true });
+
+      container.addEventListener('touchend', (e) => {
+        if (gameState !== STATE_PLAYING) return;
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        const deltaTime = Date.now() - touchStartTime;
+
+        if (deltaTime < 450) {
+          if (Math.abs(deltaX) > 35 && Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (deltaX < 0) {
+              moveLane(-1);
+            } else {
+              moveLane(1);
+            }
+          } else if (Math.abs(deltaY) > 35 && Math.abs(deltaY) > Math.abs(deltaX)) {
+            if (deltaY < 0) {
+              triggerJump();
+            } else {
+              triggerSlide();
+            }
+          }
+        }
+      }, { passive: true });
+
+      window.addEventListener('keydown', (e) => {
+        if (gameState !== STATE_PLAYING) return;
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+          moveLane(-1);
+        } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+          moveLane(1);
+        } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+          triggerJump();
+        } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+          triggerSlide();
+        } else if (e.key === ' ' || e.key === 'c' || e.key === 'C') {
+          triggerCarMode();
+        } else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+          togglePause();
+        }
+      });
+    }
+
+    function moveLane(dir) {
+      const newLane = currentLane + dir;
+      if (newLane >= 0 && newLane <= 2) {
+        currentLane = newLane;
+        targetX = LANES[currentLane];
+        sound.playWhoosh();
+      }
+    }
+
+    function triggerJump() {
+      if (isCarMode) return;
+      if (isGrounded) {
+        isGrounded = false;
+        isSliding = false;
+        slideTimer = 0;
+        pendingSlide = false;
+        velocityY = JUMP_FORCE;
+        sound.playJump();
+      }
+    }
+
+    function triggerRampBoost() {
+      isGrounded = false;
+      isSliding = false;
+      slideTimer = 0;
+      pendingSlide = false;
+      isRampLaunching = true;
+      velocityY = RAMP_JUMP_FORCE;
+
+      sound.playRampLaunch();
+
+      const overlay = document.getElementById('speed-overlay');
+      overlay.style.opacity = '0.65';
+      setTimeout(() => {
+        if (!isCarMode && !isSpeedBoostActive) overlay.style.opacity = '0';
+      }, 750);
+
+      showHint("🚀 SUPER RAMP LAUNCH! Catch the Sky Coins!");
+    }
+
+    function triggerSlide() {
+      if (isCarMode) return;
+      if (isGrounded) {
+        if (!isSliding) {
+          isSliding = true;
+          slideTimer = SLIDE_DURATION;
+          sound.playSlide();
+        } else {
+          slideTimer = SLIDE_DURATION;
+        }
+      } else {
+        velocityY = Math.min(velocityY, -26);
+        pendingSlide = true;
+      }
+    }
+
+    // TRIGGER TURBO CAR MODE
+    function triggerCarMode() {
+      if (isCarMode) return;
+      if (carCooldown > 0) {
+        showHint("Turbo Car Cooling Down!");
+        return;
+      }
+
+      isCarMode = true;
+      isSliding = false;
+      slideTimer = 0;
+      pendingSlide = false;
+      carModeTimer = CAR_MODE_DURATION;
+      characterModel.visible = false;
+      carModel.visible = true;
+
+      sound.playCarEngine();
+
+      document.getElementById('car-hud-gauge').style.opacity = '1';
+      document.getElementById('speed-overlay').style.opacity = '0.7';
+
+      showHint("🏎️ TURBO CAR ENGAGED! (Safe & Fast)");
+    }
+
+    function exitCarMode() {
+      isCarMode = false;
+      carCooldown = 6.0;
+      characterModel.visible = true;
+      carModel.visible = false;
+
+      document.getElementById('car-hud-gauge').style.opacity = '0';
+      if (!isSpeedBoostActive) {
+        document.getElementById('speed-overlay').style.opacity = '0';
+      }
+
+      showHint("Returned to Runner Mode!");
+    }
+
+    // TRIGGER COIN MAGNET POWER-UP
+    function activateMagnet() {
+      isMagnetActive = true;
+      magnetTimer = MAGNET_DURATION;
+      sound.playMagnetChime();
+
+      const gauge = document.getElementById('magnet-hud-gauge');
+      gauge.style.opacity = '1';
+
+      showHint("🧲 COIN MAGNET ACTIVE! Drawing coins from all lanes!");
+    }
+
+    function deactivateMagnet() {
+      isMagnetActive = false;
+      document.getElementById('magnet-hud-gauge').style.opacity = '0';
+      showHint("Magnet Expired!");
+    }
+
+    // TRIGGER SPEED BOOSTER POWER-UP
+    function activateSpeedBoost() {
+      isSpeedBoostActive = true;
+      speedBoostTimer = SPEED_BOOST_DURATION;
+      sound.playSpeedBoost();
+
+      const gauge = document.getElementById('speed-hud-gauge');
+      gauge.style.opacity = '1';
+      document.getElementById('warp-overlay').style.opacity = '0.85';
+      document.getElementById('speed-overlay').style.opacity = '0.85';
+
+      if (playerShieldMesh) playerShieldMesh.visible = true;
+
+      showHint("⚡ SPEED NITRO ACTIVE! Hyper-speed & Invulnerability!");
+    }
+
+    function deactivateSpeedBoost() {
+      isSpeedBoostActive = false;
+      document.getElementById('speed-hud-gauge').style.opacity = '0';
+      document.getElementById('warp-overlay').style.opacity = '0';
+      if (!isCarMode) {
+        document.getElementById('speed-overlay').style.opacity = '0';
+      }
+      if (playerShieldMesh) playerShieldMesh.visible = false;
+      showHint("Speed Boost Complete!");
+    }
+
+    function showHint(text) {
+      const hint = document.getElementById('popup-hint');
+      hint.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span> ${text}`;
+      hint.style.opacity = '1';
+      clearTimeout(hint._timer);
+      hint._timer = setTimeout(() => {
+        hint.style.opacity = '0.75';
+      }, 2500);
+    }
+
+    function triggerGameOver() {
+      gameState = STATE_GAMEOVER;
+      sound.playCrash();
+
+      const flash = document.getElementById('screen-flash');
+      flash.style.opacity = '0.8';
+      setTimeout(() => { flash.style.opacity = '0'; }, 300);
+
+      document.body.classList.add('shake-screen');
+      setTimeout(() => { document.body.classList.remove('shake-screen'); }, 400);
+
+      if (distanceRun > highScore) {
+        highScore = distanceRun;
+        localStorage.setItem('as_runner_highscore', highScore);
+      }
+
+      document.getElementById('final-score').innerText = `${distanceRun} m`;
+      document.getElementById('final-coins').innerText = coinsCollected;
+      document.getElementById('menu-highscore').innerText = `${highScore} m`;
+
+      document.getElementById('hud').classList.add('hidden');
+      document.getElementById('screen-gameover').classList.remove('hidden');
+    }
+
+    // RESET & START GAME
+    function startGame() {
+      sound.init();
+
+      currentLane = 1;
+      targetX = LANES[1];
+      playerY = 0;
+      velocityY = 0;
+      isGrounded = true;
+      isSliding = false;
+      slideTimer = 0;
+      pendingSlide = false;
+      isRampLaunching = false;
+      playerGroup.position.set(0, 0, 0);
+      characterModel.rotation.x = 0;
+      characterModel.scale.set(1, 1, 1);
+      distanceRun = 0;
+      coinsCollected = 0;
+      currentSpeed = baseSpeed;
+
+      isCarMode = false;
+      carCooldown = 0;
+      carModeTimer = 0;
+
+      isMagnetActive = false;
+      magnetTimer = 0;
+
+      isSpeedBoostActive = false;
+      speedBoostTimer = 0;
+
+      characterModel.visible = true;
+      carModel.visible = false;
+      if (playerShieldMesh) playerShieldMesh.visible = false;
+
+      // Clean existing entities from scene
+      activeObstacles.forEach(o => scene.remove(o.mesh));
+      activeObstacles = [];
+
+      activeRamps.forEach(r => scene.remove(r.mesh));
+      activeRamps = [];
+
+      activeCoins.forEach(c => scene.remove(c.mesh));
+      activeCoins = [];
+
+      activePowerups.forEach(p => scene.remove(p.mesh));
+      activePowerups = [];
+
+      // Reposition ground chunks
+      groundTiles.forEach((chunk, idx) => {
+        chunk.position.z = -idx * CHUNK_LENGTH;
+      });
+
+      // Update UI
+      document.getElementById('score-display').innerText = "0 m";
+      document.getElementById('coin-display').innerText = "0";
+      document.getElementById('car-hud-gauge').style.opacity = '0';
+      document.getElementById('magnet-hud-gauge').style.opacity = '0';
+      document.getElementById('speed-hud-gauge').style.opacity = '0';
+      document.getElementById('speed-overlay').style.opacity = '0';
+      document.getElementById('warp-overlay').style.opacity = '0';
+
+      document.getElementById('screen-menu').classList.add('hidden');
+      document.getElementById('screen-gameover').classList.add('hidden');
+      document.getElementById('screen-pause').classList.add('hidden');
+      document.getElementById('hud').classList.remove('hidden');
+
+      gameState = STATE_PLAYING;
+    }
+
+    function togglePause() {
+      if (gameState === STATE_PLAYING) {
+        gameState = STATE_PAUSED;
+        document.getElementById('screen-pause').classList.remove('hidden');
+      } else if (gameState === STATE_PAUSED) {
+        gameState = STATE_PLAYING;
+        document.getElementById('screen-pause').classList.add('hidden');
+      }
+    }
+
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min(clock.getDelta(), 0.1);
+
+      if (gameState === STATE_PLAYING) {
+        updateGame(delta);
+      } else if (gameState === STATE_MENU || gameState === STATE_SPLASH) {
+        const time = Date.now() * 0.0006;
+        camera.position.x = Math.sin(time) * 2;
+        camera.lookAt(0, 1.8, -10);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // GAME UPDATE STEP
+    function updateGame(delta) {
+      // 1. Determine Speed & Update Timers
+      let speedMultiplier = 1.0;
+      if (isCarMode) speedMultiplier = Math.max(speedMultiplier, 1.55);
+      if (isSpeedBoostActive) speedMultiplier = Math.max(speedMultiplier, 1.85);
+
+      if (isCarMode) {
+        carModeTimer -= delta;
+        const pct = Math.max(0, (carModeTimer / CAR_MODE_DURATION) * 100);
+        document.getElementById('car-timer-bar').style.width = `${pct}%`;
+        carModel.rotation.z = (playerGroup.position.x - targetX) * 0.2;
+        carModel.position.y = Math.sin(Date.now() * 0.02) * 0.04;
+        if (carModeTimer <= 0) exitCarMode();
+      } else {
+        if (carCooldown > 0) carCooldown -= delta;
+      }
+
+      // Magnet timer update
+      if (isMagnetActive) {
+        magnetTimer -= delta;
+        const pct = Math.max(0, (magnetTimer / MAGNET_DURATION) * 100);
+        document.getElementById('magnet-timer-bar').style.width = `${pct}%`;
+        if (magnetTimer <= 0) deactivateMagnet();
+      }
+
+      // Speed booster timer update
+      if (isSpeedBoostActive) {
+        speedBoostTimer -= delta;
+        const pct = Math.max(0, (speedBoostTimer / SPEED_BOOST_DURATION) * 100);
+        document.getElementById('speed-timer-bar').style.width = `${pct}%`;
+        
+        // Spin and pulse shield aura
+        if (playerShieldMesh) {
+          playerShieldMesh.rotation.y += delta * 6;
+          playerShieldMesh.rotation.x += delta * 3;
+          const s = 1.0 + Math.sin(Date.now() * 0.015) * 0.08;
+          playerShieldMesh.scale.set(s, s, s);
+        }
+
+        if (speedBoostTimer <= 0) deactivateSpeedBoost();
+      }
+
+      currentSpeed = Math.min((baseSpeed + (distanceRun * 0.008)) * speedMultiplier, MAX_SPEED * (isSpeedBoostActive ? 1.3 : 1.0));
+
+      // 2. Score / Distance increment
+      distanceRun += Math.round(currentSpeed * delta * 2.2);
+      document.getElementById('score-display').innerText = `${distanceRun} m`;
+
+      // 3. Smooth Lane Transition & Vertical Physics
+      playerGroup.position.x += (targetX - playerGroup.position.x) * (delta * 14);
+
+      if (!isGrounded) {
+        const effectiveGravity = (isRampLaunching && velocityY > 0) ? GRAVITY * 0.75 : GRAVITY;
+        velocityY += effectiveGravity * delta;
+        playerY += velocityY * delta;
+
+        if (playerY <= 0) {
+          playerY = 0;
+          velocityY = 0;
+          isGrounded = true;
+          isRampLaunching = false;
+          if (pendingSlide) {
+            pendingSlide = false;
+            triggerSlide();
+          }
+        }
+      }
+      playerGroup.position.y = playerY;
+
+      if (isSliding) {
+        slideTimer -= delta;
+        if (slideTimer <= 0) isSliding = false;
+      }
+
+      // Character Running / Jumping / Sliding Animation
+      if (!isCarMode) {
+        if (isSliding) {
+          characterModel.rotation.x = THREE.MathUtils.lerp(characterModel.rotation.x, -0.75, delta * 18);
+          characterModel.scale.y = THREE.MathUtils.lerp(characterModel.scale.y, 0.55, delta * 18);
+          characterModel.position.y = -0.1;
+          characterLegs[0].rotation.x = 0.4;
+          characterLegs[1].rotation.x = -0.2;
+          characterArms[0].rotation.x = -0.6;
+          characterArms[1].rotation.x = -0.6;
+        } else if (!isGrounded) {
+          const jumpTilt = isRampLaunching ? -0.15 : 0.15;
+          characterModel.rotation.x = THREE.MathUtils.lerp(characterModel.rotation.x, jumpTilt, delta * 12);
+          characterModel.scale.y = THREE.MathUtils.lerp(characterModel.scale.y, 1, delta * 15);
+          characterModel.position.y = 0;
+          characterLegs[0].rotation.x = isRampLaunching ? -0.3 : 0.5;
+          characterLegs[1].rotation.x = isRampLaunching ? -0.3 : -0.35;
+          characterArms[0].rotation.x = -1.2;
+          characterArms[1].rotation.x = -1.2;
+        } else {
+          characterModel.rotation.x = THREE.MathUtils.lerp(characterModel.rotation.x, 0, delta * 15);
+          characterModel.scale.y = THREE.MathUtils.lerp(characterModel.scale.y, 1, delta * 15);
+          const runCycle = Date.now() * 0.016 * (currentSpeed / 20);
+          characterLegs[0].rotation.x = Math.sin(runCycle) * 0.85;
+          characterLegs[1].rotation.x = -Math.sin(runCycle) * 0.85;
+          characterArms[0].rotation.x = -Math.sin(runCycle) * 0.8;
+          characterArms[1].rotation.x = Math.sin(runCycle) * 0.8;
+          characterModel.position.y = Math.abs(Math.sin(runCycle)) * 0.18;
+        }
+        characterModel.rotation.z = (playerGroup.position.x - targetX) * 0.25;
+      }
+
+      // 4. World Movement
+      const forwardDelta = currentSpeed * delta;
+
+      groundTiles.forEach(chunk => {
+        chunk.position.z += forwardDelta;
+        if (chunk.position.z > CHUNK_LENGTH) {
+          const minZ = Math.min(...groundTiles.map(c => c.position.z));
+          chunk.position.z = minZ - CHUNK_LENGTH;
+          populateChunkGameplay(chunk.position.z);
+        }
+      });
+
+      // 5. Update Jump Ramps
+      for (let i = activeRamps.length - 1; i >= 0; i--) {
+        const ramp = activeRamps[i];
+        ramp.mesh.position.z += forwardDelta;
+
+        const distZ = Math.abs(ramp.mesh.position.z - playerGroup.position.z);
+        const distX = Math.abs(LANES[ramp.lane] - playerGroup.position.x);
+
+        if (!ramp.triggered && distZ < 1.35 && distX < 0.95 && playerGroup.position.y < 1.2) {
+          ramp.triggered = true;
+          triggerRampBoost();
+        }
+
+        if (ramp.mesh.position.z > 12) {
+          scene.remove(ramp.mesh);
+          activeRamps.splice(i, 1);
+        }
+      }
+
+      // 6. Update Power-up Pickups (Magnet & Speed Booster)
+      for (let i = activePowerups.length - 1; i >= 0; i--) {
+        const p = activePowerups[i];
+        p.mesh.position.z += forwardDelta;
+        p.mesh.rotation.y += delta * 3.2; // Hover spinning animation
+        p.mesh.position.y = 1.1 + Math.sin(Date.now() * 0.005 + p.z) * 0.22;
+
+        const ring = p.mesh.getObjectByName("magnetRing");
+        if (ring) ring.rotation.x += delta * 4;
+
+        const halo = p.mesh.getObjectByName("speedHalo");
+        if (halo) halo.rotation.z += delta * 5;
+
+        // Collision check with player
+        const distZ = Math.abs(p.mesh.position.z - playerGroup.position.z);
+        const distX = Math.abs(p.mesh.position.x - playerGroup.position.x);
+        const distY = Math.abs(p.mesh.position.y - (playerGroup.position.y + 1.1));
+
+        if (distZ < 1.4 && distX < 1.2 && distY < 1.8) {
+          if (p.type === 'magnet') {
+            activateMagnet();
+          } else if (p.type === 'speed') {
+            activateSpeedBoost();
+          }
+          scene.remove(p.mesh);
+          activePowerups.splice(i, 1);
+          continue;
+        }
+
+        if (p.mesh.position.z > 12) {
+          scene.remove(p.mesh);
+          activePowerups.splice(i, 1);
+        }
+      }
+
+      // 7. Update Obstacles & Check Collisions
+      const playerBottom = playerGroup.position.y;
+      const playerTop = playerGroup.position.y + (isSliding ? 0.95 : 2.1);
+      const isInvulnerable = isCarMode || isSpeedBoostActive;
+
+      for (let i = activeObstacles.length - 1; i >= 0; i--) {
+        const obs = activeObstacles[i];
+        obs.mesh.position.z += forwardDelta;
+
+        const distZ = Math.abs(obs.mesh.position.z - playerGroup.position.z);
+        const distX = Math.abs(obs.mesh.position.x - playerGroup.position.x);
+
+        if (distZ < 1.1 && distX < 0.95) {
+          if (isInvulnerable) {
+            // Smash through obstacles safely!
+            sound.playCrash();
+            scene.remove(obs.mesh);
+            activeObstacles.splice(i, 1);
+            continue;
+          } else {
+            const verticalOverlap = playerTop > obs.minY && playerBottom < obs.maxY;
+            if (verticalOverlap) {
+              triggerGameOver();
+              return;
+            }
+          }
+        }
+
+        if (obs.mesh.position.z > 10) {
+          scene.remove(obs.mesh);
+          activeObstacles.splice(i, 1);
+        }
+      }
+
+      // 8. Update Coins & COIN MAGNET PULL LOGIC
+      const runnerCenterY = playerGroup.position.y + 1.1;
+
+      for (let i = activeCoins.length - 1; i >= 0; i--) {
+        const coin = activeCoins[i];
+        coin.mesh.position.z += forwardDelta;
+        coin.mesh.rotation.y += delta * 4.5;
+
+        // MAGNET PULL: Attracts all coins within a 22 unit range smoothly into the player
+        if (isMagnetActive) {
+          const coinWorldZ = coin.mesh.position.z;
+          const coinDistToPlayer = Math.hypot(
+            coin.mesh.position.x - playerGroup.position.x,
+            coin.mesh.position.y - runnerCenterY,
+            coinWorldZ - playerGroup.position.z
+          );
+
+          if (coinDistToPlayer < 22 && coinWorldZ < 2) {
+            // Rapid magnetic vector pull
+            const pullSpeed = delta * 24;
+            coin.mesh.position.x += (playerGroup.position.x - coin.mesh.position.x) * pullSpeed;
+            coin.mesh.position.y += (runnerCenterY - coin.mesh.position.y) * pullSpeed;
+            coin.mesh.position.z += (playerGroup.position.z - coin.mesh.position.z) * (pullSpeed * 0.7);
+
+            // Shimmer sound occasionally on pull
+            if (Math.random() < 0.05) sound.playMagneticPull();
+          }
+        }
+
+        const distZ = Math.abs(coin.mesh.position.z - playerGroup.position.z);
+        const distX = Math.abs(coin.mesh.position.x - playerGroup.position.x);
+        const coinY = coin.mesh.position.y;
+        const distY = Math.abs(coinY - runnerCenterY);
+
+        const collectThreshold = (isCarMode || isMagnetActive) ? 2.2 : 1.25;
+        const verticalTolerance = (isCarMode || isMagnetActive) ? 2.5 : 1.4;
+
+        if (distZ < collectThreshold && distX < collectThreshold && distY < verticalTolerance) {
+          sound.playCoin();
+          coinsCollected++;
+          document.getElementById('coin-display').innerText = coinsCollected;
+
+          scene.remove(coin.mesh);
+          activeCoins.splice(i, 1);
+          continue;
+        }
+
+        if (coin.mesh.position.z > 10) {
+          scene.remove(coin.mesh);
+          activeCoins.splice(i, 1);
+        }
+      }
+
+      // 9. Update Particles
+      if (particles.length > 0) {
+        const pos = particles[0].geometry.attributes.position.array;
+        const speedBoostMult = isSpeedBoostActive ? 2.8 : 1.5;
+        for (let i = 2; i < pos.length; i += 3) {
+          pos[i] += forwardDelta * speedBoostMult;
+          if (pos[i] > 10) pos[i] = -70;
+        }
+        particles[0].geometry.attributes.position.needsUpdate = true;
+      }
+
+      // 10. Dynamic Camera Follow
+      camera.position.x = playerGroup.position.x * 0.45;
+      camera.position.y = (isCarMode ? 4.8 : 4.2) + playerGroup.position.y * 0.45;
+      camera.position.z = isCarMode ? 6.5 : (isSpeedBoostActive ? 6.2 : 5.8);
+      camera.lookAt(playerGroup.position.x * 0.3, 1.8 + playerGroup.position.y * 0.35, -12);
+    }
+
+    // BOOT SEQUENCE & SCREEN FLOW
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      setupTouchAndInput();
+      animate();
+
+      // UI Bindings
+      document.getElementById('btn-play').addEventListener('click', startGame);
+      document.getElementById('btn-restart').addEventListener('click', startGame);
+      document.getElementById('btn-pause').addEventListener('click', togglePause);
+      document.getElementById('btn-resume').addEventListener('click', togglePause);
+      
+      document.getElementById('btn-quit').addEventListener('click', () => {
+        document.getElementById('screen-pause').classList.add('hidden');
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('screen-menu').classList.remove('hidden');
+        gameState = STATE_MENU;
+      });
+
+      document.getElementById('btn-menu-from-over').addEventListener('click', () => {
+        document.getElementById('screen-gameover').classList.add('hidden');
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('screen-menu').classList.remove('hidden');
+        gameState = STATE_MENU;
+      });
+
+      document.getElementById('btn-sound-toggle').addEventListener('click', (e) => {
+        sound.enabled = !sound.enabled;
+        e.target.innerText = sound.enabled ? "ENABLED" : "MUTED";
+      });
+
+      document.getElementById('menu-highscore').innerText = `${highScore} m`;
+
+      // SPLASH SCREEN TIMING (ALI SHERAZ Cinematic Presentation)
+      const splashBar = document.getElementById('splash-bar');
+      setTimeout(() => {
+        splashBar.style.width = '100%';
+      }, 150);
+
+      setTimeout(() => {
+        const splashScreen = document.getElementById('screen-splash');
+        splashScreen.style.opacity = '0';
+        setTimeout(() => {
+          splashScreen.classList.add('hidden');
+          const menu = document.getElementById('screen-menu');
+          menu.classList.remove('hidden');
+          menu.style.opacity = '1';
+          gameState = STATE_MENU;
+        }, 600);
+      }, 2600);
+    });
+  </script>
+</body></html>
