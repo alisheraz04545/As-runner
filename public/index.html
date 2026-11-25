@@ -1,22 +1,771 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>My App</title>
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AS RUNNER - Created by ALI SHERAZ</title>
+<!-- Tailwind CSS & Google Fonts -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&amp;family=Outfit:wght@400;600;800;900&amp;family=Teko:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Three.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-  html,body{height:100%;margin:0}
-  body{display:flex;align-items:center;justify-content:center;background:#0f1115;color:#e8e8ea;
-       font:16px/1.5 system-ui,sans-serif;padding:24px;box-sizing:border-box;text-align:center}
-  main{max-width:30rem}
-  h1{font-size:1.4rem;margin:0 0 .5rem}
-  p{margin:0;opacity:.75}
-</style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050811;
+      font-family: 'Outfit', sans-serif;
+    }
+    .cinzel { font-family: 'Cinzel', serif; }
+    .teko { font-family: 'Teko', sans-serif; letter-spacing: 0.05em; }
+
+    /* Animated Glows */
+    .glow-gold {
+      text-shadow: 0 0 15px rgba(251, 191, 36, 0.6), 0 0 30px rgba(245, 158, 11, 0.4);
+    }
+    .glow-cyan {
+      text-shadow: 0 0 15px rgba(56, 189, 248, 0.8), 0 0 35px rgba(14, 165, 233, 0.5);
+    }
+    .glow-red {
+      text-shadow: 0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(220, 38, 38, 0.5);
+    }
+    .box-glow-gold {
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.45), inset 0 0 15px rgba(251, 191, 36, 0.3);
+    }
+    .box-glow-cyan {
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.4);
+    }
+    .box-glow-red {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.5), inset 0 0 15px rgba(248, 113, 113, 0.4);
+    }
+
+    /* Screen Shake Animation */
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-6px, 4px); }
+      40% { transform: translate(6px, -4px); }
+      60% { transform: translate(-4px, -2px); }
+      80% { transform: translate(4px, 2px); }
+    }
+    .shake-screen {
+      animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* Speed lines overlay during Car Mode / Speed Booster / Ramp Boost */
+    .speed-lines {
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(56, 189, 248, 0.15) 0px,
+        rgba(56, 189, 248, 0.15) 2px,
+        transparent 2px,
+        transparent 14px
+      );
+      pointer-events: none;
+    }
+
+    .warp-speed-tunnel {
+      background: radial-gradient(circle, transparent 40%, rgba(6, 182, 212, 0.25) 85%, rgba(2, 132, 199, 0.4) 100%),
+                  repeating-radial-gradient(circle, transparent 0, transparent 15px, rgba(56, 189, 248, 0.1) 16px, transparent 24px);
+      pointer-events: none;
+    }
+
+    /* Pulse animation */
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); opacity: 0.95; }
+      50% { transform: scale(1.04); opacity: 1; }
+    }
+    .btn-pulse {
+      animation: pulseSoft 1.8s infinite ease-in-out;
+    }
+  </style>
 </head>
-<body>
-<main>
-  <h1>My App</h1>
-  <p>Replace this page with your own website files in the <b>public</b> folder, or fill in the <b>url</b> field when you run the build.</p>
-</main>
-</body>
-</html>
+<body class="relative w-screen h-screen overflow-hidden select-none bg-slate-950 text-white">
+<!-- 3D Canvas Container -->
+<div class="absolute inset-0 w-full h-full z-0" id="canvas-container"></div>
+<!-- Nitro Speed Lines & Warp Overlay (Car Mode & Speed Booster & Ramp Boost) -->
+<div class="absolute inset-0 z-10 speed-lines opacity-0 transition-opacity duration-300 pointer-events-none" id="speed-overlay"></div>
+<div class="absolute inset-0 z-10 warp-speed-tunnel opacity-0 transition-opacity duration-300 pointer-events-none" id="warp-overlay"></div>
+<!-- Flash Effect on Hit/Collect -->
+<div class="absolute inset-0 bg-red-600/30 z-20 opacity-0 pointer-events-none transition-opacity duration-150" id="screen-flash"></div>
+<!-- HUD Overlay (Ingame) -->
+<div class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-4 hidden" id="hud">
+<!-- Top Bar with Stats & Power-up Status Gauges -->
+<div class="flex flex-col gap-2 w-full pt-1 sm:pt-2">
+<div class="flex items-center justify-between w-full">
+<!-- Distance / Score -->
+<div class="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-lg">
+<svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" fill-rule="evenodd"></path>
+</svg>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] tracking-wider uppercase text-slate-400 font-semibold leading-none">Distance</span>
+<span class="text-lg sm:text-xl font-black teko text-white leading-none mt-0.5" id="score-display">0 m</span>
+</div>
+</div>
+<!-- Center Power-Up Gauges (Flex container holding Car, Magnet, Speed Booster) -->
+<div class="flex items-center gap-2">
+<!-- Car Powerup Timer / Indicator -->
+<div class="flex items-center gap-2 bg-cyan-950/85 backdrop-blur-md border border-cyan-500/50 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="car-hud-gauge">
+<span class="text-cyan-400 text-[10px] sm:text-xs font-black tracking-widest uppercase">TURBO CAR</span>
+<div class="w-12 sm:w-16 h-2 bg-slate-800 rounded-full overflow-hidden border border-cyan-400/40">
+<div class="h-full bg-cyan-400 rounded-full w-full transition-all duration-75" id="car-timer-bar"></div>
+</div>
+</div>
+<!-- Magnet Powerup Timer / Indicator -->
+<div class="flex items-center gap-1.5 sm:gap-2 bg-rose-950/85 backdrop-blur-md border border-rose-500/60 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="magnet-hud-gauge">
+<span class="text-rose-400 text-xs sm:text-sm">🧲</span>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] text-rose-300 font-black tracking-wider uppercase leading-none">MAGNET</span>
+<div class="w-12 sm:w-16 h-1.5 sm:h-2 bg-slate-800 rounded-full overflow-hidden border border-rose-400/40 mt-0.5">
+<div class="h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-full w-full transition-all duration-75" id="magnet-timer-bar"></div>
+</div>
+</div>
+</div>
+<!-- Speed Booster Timer / Indicator -->
+<div class="flex items-center gap-1.5 sm:gap-2 bg-amber-950/85 backdrop-blur-md border border-amber-400/60 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="speed-hud-gauge">
+<span class="text-amber-300 text-xs sm:text-sm">⚡</span>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] text-amber-300 font-black tracking-wider uppercase leading-none">SPEED NITRO</span>
+<div class="w-12 sm:w-16 h-1.5 sm:h-2 bg-slate-800 rounded-full overflow-hidden border border-amber-400/40 mt-0.5">
+<div class="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full w-full transition-all duration-75" id="speed-timer-bar"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Coins and Pause -->
+<div class="flex items-center gap-2 pointer-events-auto">
+<div class="flex items-center gap-1.5 sm:gap-2 bg-slate-900/80 backdrop-blur-md border border-amber-500/40 px-2.5 sm:px-3 py-1.5 rounded-2xl shadow-lg">
+<!-- Animated Coin Icon -->
+<div class="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-yellow-200 border border-yellow-200 shadow flex items-center justify-center text-[10px] font-black text-amber-950">
+            $
+          </div>
+<span class="text-lg sm:text-xl font-black teko text-yellow-300 leading-none" id="coin-display">0</span>
+</div>
+<button class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-slate-700 flex items-center justify-center active:scale-90 transition" id="btn-pause">
+<svg class="w-4 h-4 sm:w-5 sm:h-5 text-slate-200" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" fill-rule="evenodd"></path>
+</svg>
+</button>
+</div>
+</div>
+</div>
+<!-- Center Notification / Floating Hints -->
+<div class="self-center bg-slate-950/80 backdrop-blur-md border border-cyan-500/40 text-cyan-300 text-xs px-4 py-1.5 rounded-full shadow-lg transition-opacity duration-300 opacity-80 mb-2 pointer-events-none font-medium flex items-center gap-1.5" id="popup-hint">
+<span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+      Grab 🧲 Coin Magnet &amp; ⚡ Speed Booster • Hit Jump Ramps • 2x Tap Turbo Car!
+    </div>
+<!-- Bottom Controls Guide (subtle icons for touch feedback) -->
+<div class="flex justify-between items-center px-4 pb-2 text-slate-400/60 text-[11px] font-semibold tracking-wider uppercase">
+<div class="flex items-center gap-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Swipe Lanes / Jump / Slide</span>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div class="flex items-center gap-2 text-cyan-400/80">
+<span>⚡ 2x Tap = Car</span>
+<span class="text-rose-400/80">🧲 Magnet In Sky</span>
+</div>
+</div>
+</div>
+<!-- 1. CINEMATIC CREATOR SPLASH SCREEN (ALI SHERAZ) -->
+<div class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl px-6 transition-all duration-700" id="screen-splash">
+<div class="relative flex flex-col items-center max-w-sm text-center">
+<!-- Ambient Backlight -->
+<div class="absolute -top-16 w-64 h-64 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Presenter Tag -->
+<p class="text-xs uppercase tracking-[0.35em] text-amber-400 font-bold mb-3 animate-pulse">
+        PROUDLY CREATED &amp; DIRECTED BY
+      </p>
+<!-- CREATOR NAME (ALI SHERAZ prominently displayed) -->
+<h1 class="cinzel text-4xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 glow-gold mb-3">
+        ALI SHERAZ
+      </h1>
+<div class="h-0.5 w-28 bg-gradient-to-r from-transparent via-amber-400 to-transparent my-2"></div>
+<p class="text-slate-400 text-xs tracking-widest uppercase font-medium mt-1">
+        Presents High-Octane 3D Endless Adventure
+      </p>
+<!-- Cinematic loading bar -->
+<div class="w-48 h-1 bg-slate-800 rounded-full mt-8 overflow-hidden">
+<div class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 w-0 transition-all duration-1000 ease-out" id="splash-bar"></div>
+</div>
+<p class="text-[10px] text-slate-500 uppercase tracking-widest mt-3">Loading 3D World &amp; Powerups...</p>
+</div>
+</div>
+<!-- 2. MAIN TITLE / MENU SCREEN ("AS RUNNER") -->
+<div class="absolute inset-0 z-40 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-slate-950/70 via-slate-900/40 to-slate-950/90 backdrop-blur-[2px] hidden transition-opacity duration-500 overflow-y-auto" id="screen-menu">
+<!-- Top Branding -->
+<div class="flex items-center justify-between w-full pt-4 max-w-lg">
+<div class="flex items-center gap-1.5">
+<span class="text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Mobile HD</span>
+<span class="text-[11px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Powerups Edition</span>
+</div>
+<div class="text-[11px] text-slate-400 font-medium tracking-wide">
+        Created by <span class="text-amber-400 font-bold">ALI SHERAZ</span>
+</div>
+</div>
+<!-- Title & Hero Info -->
+<div class="flex flex-col items-center text-center my-auto py-4">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs mb-3">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        Ready to Run
+      </div>
+<h1 class="teko text-7xl sm:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-amber-300 glow-gold leading-none tracking-tight">
+        AS RUNNER
+      </h1>
+<p class="text-amber-200/90 text-sm font-semibold tracking-wider uppercase -mt-1 mb-5">
+        Temple Run Re-imagined in 3D
+      </p>
+<!-- Play Button -->
+<button class="btn-pulse relative group px-10 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-black text-2xl teko tracking-wider uppercase shadow-2xl box-glow-gold active:scale-95 transition-transform flex items-center gap-3" id="btn-play">
+<svg class="w-7 h-7 fill-current" viewbox="0 0 24 24">
+<path d="M8 5v14l11-7z"></path>
+</svg>
+<span>START RUNNING</span>
+</button>
+<!-- Feature Badges Grid including Magnet & Speed Booster -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-7 max-w-lg text-left">
+<div class="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
+<div class="text-amber-400 text-xs font-bold flex items-center gap-1">
+<span>👈 👉</span> Lanes &amp; Jumps
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Dodge hurdles, roll under high beams</p>
+</div>
+<div class="bg-slate-900/80 border border-rose-900/50 p-2.5 rounded-xl">
+<div class="text-rose-400 text-xs font-bold flex items-center gap-1">
+<span>🧲 ✨</span> Coin Magnet
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Vacuum all nearby coins from any lane</p>
+</div>
+<div class="bg-slate-900/80 border border-amber-900/50 p-2.5 rounded-xl">
+<div class="text-amber-400 text-xs font-bold flex items-center gap-1">
+<span>⚡ 💨</span> Speed Boost
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Nitro hyper-velocity with invulnerability</p>
+</div>
+<div class="bg-slate-900/80 border border-cyan-900/50 p-2.5 rounded-xl">
+<div class="text-cyan-400 text-xs font-bold flex items-center gap-1">
+<span>🏎️ 🚀</span> Turbo Car
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">2x Tap to smash obstacles &amp; launch ramps</p>
+</div>
+</div>
+</div>
+<!-- Footer Stats / Credits -->
+<div class="flex items-center justify-between w-full max-w-lg pb-2 text-[11px] text-slate-400">
+<div>High Score: <span class="text-amber-400 font-bold" id="menu-highscore">0 m</span></div>
+<div>Sound: <button class="text-slate-300 font-bold underline" id="btn-sound-toggle">ENABLED</button></div>
+</div>
+</div>
+<!-- 3. PAUSE MODAL -->
+<div class="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 hidden" id="screen-pause">
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full text-center shadow-2xl">
+<h2 class="teko text-4xl font-black text-amber-400 mb-2">GAME PAUSED</h2>
+<p class="text-xs text-slate-400 mb-6">Take a breather, the runner awaits.</p>
+<div class="flex flex-col gap-3">
+<button class="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-black teko text-xl tracking-wider active:scale-95 transition" id="btn-resume">
+          RESUME RUN
+        </button>
+<button class="w-full py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs uppercase tracking-wider border border-slate-700 active:scale-95 transition" id="btn-quit">
+          MAIN MENU
+        </button>
+</div>
+</div>
+</div>
+<!-- 4. GAME OVER SCREEN -->
+<div class="absolute inset-0 z-40 bg-gradient-to-t from-slate-950 via-slate-900/90 to-red-950/60 backdrop-blur-md flex flex-col items-center justify-center p-6 hidden" id="screen-gameover">
+<div class="relative bg-slate-900/90 border border-slate-700/80 p-6 rounded-3xl max-w-xs w-full text-center shadow-2xl overflow-hidden">
+<!-- Glow top -->
+<div class="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-24 bg-red-500/20 blur-2xl pointer-events-none"></div>
+<span class="inline-block px-3 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest border border-red-500/30 mb-2">
+        CRASHED!
+      </span>
+<h2 class="teko text-5xl font-black text-white leading-none mb-1">
+        RUN TERMINATED
+      </h2>
+<p class="text-[11px] text-slate-400 uppercase tracking-wider mb-5">AS RUNNER • ALI SHERAZ</p>
+<!-- Score Breakdown Card -->
+<div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 mb-5 flex justify-around items-center">
+<div>
+<span class="text-[10px] uppercase text-slate-500 font-bold block">Distance</span>
+<span class="teko text-3xl font-black text-amber-300 leading-none" id="final-score">0 m</span>
+</div>
+<div class="h-8 w-px bg-slate-800"></div>
+<div>
+<span class="text-[10px] uppercase text-slate-500 font-bold block">Coins Collected</span>
+<span class="teko text-3xl font-black text-yellow-400 leading-none" id="final-coins">0</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-2.5">
+<button class="btn-pulse w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black teko text-2xl tracking-wider uppercase box-glow-gold active:scale-95 transition" id="btn-restart">
+          RUN AGAIN
+        </button>
+<button class="w-full py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs tracking-wider uppercase border border-slate-700 active:scale-95 transition" id="btn-menu-from-over">
+          MAIN MENU
+        </button>
+</div>
+</div>
+</div>
+<!-- AUDIO SYNTHESIS ENGINE (Web Audio API - With Magnet & Speed Boost SFX) -->
+<script>
+    class SoundController {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playCoin() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(987.77, now); // B5
+        osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.1); // E6
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      }
+      playMagnetChime() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Resonant electric magnetic shimmer
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.4 + idx * 0.05);
+          gain.gain.setValueAtTime(0.12, now + idx * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.05);
+          osc.stop(now + 0.65);
+        });
+      }
+      playSpeedBoost() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Futuristic supersonic warp whoosh
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(120, now);
+        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.35);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(240, now);
+        osc2.frequency.exponentialRampToValueAtTime(1400, now + 0.4);
+
+       <!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AS RUNNER - Created by ALI SHERAZ</title>
+<!-- Tailwind CSS & Google Fonts -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&amp;family=Outfit:wght@400;600;800;900&amp;family=Teko:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Three.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050811;
+      font-family: 'Outfit', sans-serif;
+    }
+    .cinzel { font-family: 'Cinzel', serif; }
+    .teko { font-family: 'Teko', sans-serif; letter-spacing: 0.05em; }
+
+    /* Animated Glows */
+    .glow-gold {
+      text-shadow: 0 0 15px rgba(251, 191, 36, 0.6), 0 0 30px rgba(245, 158, 11, 0.4);
+    }
+    .glow-cyan {
+      text-shadow: 0 0 15px rgba(56, 189, 248, 0.8), 0 0 35px rgba(14, 165, 233, 0.5);
+    }
+    .glow-red {
+      text-shadow: 0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(220, 38, 38, 0.5);
+    }
+    .box-glow-gold {
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.45), inset 0 0 15px rgba(251, 191, 36, 0.3);
+    }
+    .box-glow-cyan {
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.4);
+    }
+    .box-glow-red {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.5), inset 0 0 15px rgba(248, 113, 113, 0.4);
+    }
+
+    /* Screen Shake Animation */
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-6px, 4px); }
+      40% { transform: translate(6px, -4px); }
+      60% { transform: translate(-4px, -2px); }
+      80% { transform: translate(4px, 2px); }
+    }
+    .shake-screen {
+      animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* Speed lines overlay during Car Mode / Speed Booster / Ramp Boost */
+    .speed-lines {
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(56, 189, 248, 0.15) 0px,
+        rgba(56, 189, 248, 0.15) 2px,
+        transparent 2px,
+        transparent 14px
+      );
+      pointer-events: none;
+    }
+
+    .warp-speed-tunnel {
+      background: radial-gradient(circle, transparent 40%, rgba(6, 182, 212, 0.25) 85%, rgba(2, 132, 199, 0.4) 100%),
+                  repeating-radial-gradient(circle, transparent 0, transparent 15px, rgba(56, 189, 248, 0.1) 16px, transparent 24px);
+      pointer-events: none;
+    }
+
+    /* Pulse animation */
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); opacity: 0.95; }
+      50% { transform: scale(1.04); opacity: 1; }
+    }
+    .btn-pulse {
+      animation: pulseSoft 1.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none bg-slate-950 text-white">
+<!-- 3D Canvas Container -->
+<div class="absolute inset-0 w-full h-full z-0" id="canvas-container"></div>
+<!-- Nitro Speed Lines & Warp Overlay (Car Mode & Speed Booster & Ramp Boost) -->
+<div class="absolute inset-0 z-10 speed-lines opacity-0 transition-opacity duration-300 pointer-events-none" id="speed-overlay"></div>
+<div class="absolute inset-0 z-10 warp-speed-tunnel opacity-0 transition-opacity duration-300 pointer-events-none" id="warp-overlay"></div>
+<!-- Flash Effect on Hit/Collect -->
+<div class="absolute inset-0 bg-red-600/30 z-20 opacity-0 pointer-events-none transition-opacity duration-150" id="screen-flash"></div>
+<!-- HUD Overlay (Ingame) -->
+<div class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-4 hidden" id="hud">
+<!-- Top Bar with Stats & Power-up Status Gauges -->
+<div class="flex flex-col gap-2 w-full pt-1 sm:pt-2">
+<div class="flex items-center justify-between w-full">
+<!-- Distance / Score -->
+<div class="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-lg">
+<svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" fill-rule="evenodd"></path>
+</svg>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] tracking-wider uppercase text-slate-400 font-semibold leading-none">Distance</span>
+<span class="text-lg sm:text-xl font-black teko text-white leading-none mt-0.5" id="score-display">0 m</span>
+</div>
+</div>
+<!-- Center Power-Up Gauges (Flex container holding Car, Magnet, Speed Booster) -->
+<div class="flex items-center gap-2">
+<!-- Car Powerup Timer / Indicator -->
+<div class="flex items-center gap-2 bg-cyan-950/85 backdrop-blur-md border border-cyan-500/50 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="car-hud-gauge">
+<span class="text-cyan-400 text-[10px] sm:text-xs font-black tracking-widest uppercase">TURBO CAR</span>
+<div class="w-12 sm:w-16 h-2 bg-slate-800 rounded-full overflow-hidden border border-cyan-400/40">
+<div class="h-full bg-cyan-400 rounded-full w-full transition-all duration-75" id="car-timer-bar"></div>
+</div>
+</div>
+<!-- Magnet Powerup Timer / Indicator -->
+<div class="flex items-center gap-1.5 sm:gap-2 bg-rose-950/85 backdrop-blur-md border border-rose-500/60 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="magnet-hud-gauge">
+<span class="text-rose-400 text-xs sm:text-sm">🧲</span>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] text-rose-300 font-black tracking-wider uppercase leading-none">MAGNET</span>
+<div class="w-12 sm:w-16 h-1.5 sm:h-2 bg-slate-800 rounded-full overflow-hidden border border-rose-400/40 mt-0.5">
+<div class="h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-full w-full transition-all duration-75" id="magnet-timer-bar"></div>
+</div>
+</div>
+</div>
+<!-- Speed Booster Timer / Indicator -->
+<div class="flex items-center gap-1.5 sm:gap-2 bg-amber-950/85 backdrop-blur-md border border-amber-400/60 px-2.5 py-1 rounded-2xl opacity-0 transition-opacity duration-200" id="speed-hud-gauge">
+<span class="text-amber-300 text-xs sm:text-sm">⚡</span>
+<div class="flex flex-col">
+<span class="text-[9px] sm:text-[10px] text-amber-300 font-black tracking-wider uppercase leading-none">SPEED NITRO</span>
+<div class="w-12 sm:w-16 h-1.5 sm:h-2 bg-slate-800 rounded-full overflow-hidden border border-amber-400/40 mt-0.5">
+<div class="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full w-full transition-all duration-75" id="speed-timer-bar"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Coins and Pause -->
+<div class="flex items-center gap-2 pointer-events-auto">
+<div class="flex items-center gap-1.5 sm:gap-2 bg-slate-900/80 backdrop-blur-md border border-amber-500/40 px-2.5 sm:px-3 py-1.5 rounded-2xl shadow-lg">
+<!-- Animated Coin Icon -->
+<div class="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-yellow-200 border border-yellow-200 shadow flex items-center justify-center text-[10px] font-black text-amber-950">
+            $
+          </div>
+<span class="text-lg sm:text-xl font-black teko text-yellow-300 leading-none" id="coin-display">0</span>
+</div>
+<button class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-slate-700 flex items-center justify-center active:scale-90 transition" id="btn-pause">
+<svg class="w-4 h-4 sm:w-5 sm:h-5 text-slate-200" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" fill-rule="evenodd"></path>
+</svg>
+</button>
+</div>
+</div>
+</div>
+<!-- Center Notification / Floating Hints -->
+<div class="self-center bg-slate-950/80 backdrop-blur-md border border-cyan-500/40 text-cyan-300 text-xs px-4 py-1.5 rounded-full shadow-lg transition-opacity duration-300 opacity-80 mb-2 pointer-events-none font-medium flex items-center gap-1.5" id="popup-hint">
+<span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+      Grab 🧲 Coin Magnet &amp; ⚡ Speed Booster • Hit Jump Ramps • 2x Tap Turbo Car!
+    </div>
+<!-- Bottom Controls Guide (subtle icons for touch feedback) -->
+<div class="flex justify-between items-center px-4 pb-2 text-slate-400/60 text-[11px] font-semibold tracking-wider uppercase">
+<div class="flex items-center gap-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Swipe Lanes / Jump / Slide</span>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div class="flex items-center gap-2 text-cyan-400/80">
+<span>⚡ 2x Tap = Car</span>
+<span class="text-rose-400/80">🧲 Magnet In Sky</span>
+</div>
+</div>
+</div>
+<!-- 1. CINEMATIC CREATOR SPLASH SCREEN (ALI SHERAZ) -->
+<div class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl px-6 transition-all duration-700" id="screen-splash">
+<div class="relative flex flex-col items-center max-w-sm text-center">
+<!-- Ambient Backlight -->
+<div class="absolute -top-16 w-64 h-64 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Presenter Tag -->
+<p class="text-xs uppercase tracking-[0.35em] text-amber-400 font-bold mb-3 animate-pulse">
+        PROUDLY CREATED &amp; DIRECTED BY
+      </p>
+<!-- CREATOR NAME (ALI SHERAZ prominently displayed) -->
+<h1 class="cinzel text-4xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 glow-gold mb-3">
+        ALI SHERAZ
+      </h1>
+<div class="h-0.5 w-28 bg-gradient-to-r from-transparent via-amber-400 to-transparent my-2"></div>
+<p class="text-slate-400 text-xs tracking-widest uppercase font-medium mt-1">
+        Presents High-Octane 3D Endless Adventure
+      </p>
+<!-- Cinematic loading bar -->
+<div class="w-48 h-1 bg-slate-800 rounded-full mt-8 overflow-hidden">
+<div class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 w-0 transition-all duration-1000 ease-out" id="splash-bar"></div>
+</div>
+<p class="text-[10px] text-slate-500 uppercase tracking-widest mt-3">Loading 3D World &amp; Powerups...</p>
+</div>
+</div>
+<!-- 2. MAIN TITLE / MENU SCREEN ("AS RUNNER") -->
+<div class="absolute inset-0 z-40 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-slate-950/70 via-slate-900/40 to-slate-950/90 backdrop-blur-[2px] hidden transition-opacity duration-500 overflow-y-auto" id="screen-menu">
+<!-- Top Branding -->
+<div class="flex items-center justify-between w-full pt-4 max-w-lg">
+<div class="flex items-center gap-1.5">
+<span class="text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Mobile HD</span>
+<span class="text-[11px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Powerups Edition</span>
+</div>
+<div class="text-[11px] text-slate-400 font-medium tracking-wide">
+        Created by <span class="text-amber-400 font-bold">ALI SHERAZ</span>
+</div>
+</div>
+<!-- Title & Hero Info -->
+<div class="flex flex-col items-center text-center my-auto py-4">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs mb-3">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        Ready to Run
+      </div>
+<h1 class="teko text-7xl sm:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-amber-300 glow-gold leading-none tracking-tight">
+        AS RUNNER
+      </h1>
+<p class="text-amber-200/90 text-sm font-semibold tracking-wider uppercase -mt-1 mb-5">
+        Temple Run Re-imagined in 3D
+      </p>
+<!-- Play Button -->
+<button class="btn-pulse relative group px-10 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-black text-2xl teko tracking-wider uppercase shadow-2xl box-glow-gold active:scale-95 transition-transform flex items-center gap-3" id="btn-play">
+<svg class="w-7 h-7 fill-current" viewbox="0 0 24 24">
+<path d="M8 5v14l11-7z"></path>
+</svg>
+<span>START RUNNING</span>
+</button>
+<!-- Feature Badges Grid including Magnet & Speed Booster -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-7 max-w-lg text-left">
+<div class="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
+<div class="text-amber-400 text-xs font-bold flex items-center gap-1">
+<span>👈 👉</span> Lanes &amp; Jumps
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Dodge hurdles, roll under high beams</p>
+</div>
+<div class="bg-slate-900/80 border border-rose-900/50 p-2.5 rounded-xl">
+<div class="text-rose-400 text-xs font-bold flex items-center gap-1">
+<span>🧲 ✨</span> Coin Magnet
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Vacuum all nearby coins from any lane</p>
+</div>
+<div class="bg-slate-900/80 border border-amber-900/50 p-2.5 rounded-xl">
+<div class="text-amber-400 text-xs font-bold flex items-center gap-1">
+<span>⚡ 💨</span> Speed Boost
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">Nitro hyper-velocity with invulnerability</p>
+</div>
+<div class="bg-slate-900/80 border border-cyan-900/50 p-2.5 rounded-xl">
+<div class="text-cyan-400 text-xs font-bold flex items-center gap-1">
+<span>🏎️ 🚀</span> Turbo Car
+          </div>
+<p class="text-[10px] text-slate-400 mt-0.5">2x Tap to smash obstacles &amp; launch ramps</p>
+</div>
+</div>
+</div>
+<!-- Footer Stats / Credits -->
+<div class="flex items-center justify-between w-full max-w-lg pb-2 text-[11px] text-slate-400">
+<div>High Score: <span class="text-amber-400 font-bold" id="menu-highscore">0 m</span></div>
+<div>Sound: <button class="text-slate-300 font-bold underline" id="btn-sound-toggle">ENABLED</button></div>
+</div>
+</div>
+<!-- 3. PAUSE MODAL -->
+<div class="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 hidden" id="screen-pause">
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full text-center shadow-2xl">
+<h2 class="teko text-4xl font-black text-amber-400 mb-2">GAME PAUSED</h2>
+<p class="text-xs text-slate-400 mb-6">Take a breather, the runner awaits.</p>
+<div class="flex flex-col gap-3">
+<button class="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-black teko text-xl tracking-wider active:scale-95 transition" id="btn-resume">
+          RESUME RUN
+        </button>
+<button class="w-full py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs uppercase tracking-wider border border-slate-700 active:scale-95 transition" id="btn-quit">
+          MAIN MENU
+        </button>
+</div>
+</div>
+</div>
+<!-- 4. GAME OVER SCREEN -->
+<div class="absolute inset-0 z-40 bg-gradient-to-t from-slate-950 via-slate-900/90 to-red-950/60 backdrop-blur-md flex flex-col items-center justify-center p-6 hidden" id="screen-gameover">
+<div class="relative bg-slate-900/90 border border-slate-700/80 p-6 rounded-3xl max-w-xs w-full text-center shadow-2xl overflow-hidden">
+<!-- Glow top -->
+<div class="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-24 bg-red-500/20 blur-2xl pointer-events-none"></div>
+<span class="inline-block px-3 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest border border-red-500/30 mb-2">
+        CRASHED!
+      </span>
+<h2 class="teko text-5xl font-black text-white leading-none mb-1">
+        RUN TERMINATED
+      </h2>
+<p class="text-[11px] text-slate-400 uppercase tracking-wider mb-5">AS RUNNER • ALI SHERAZ</p>
+<!-- Score Breakdown Card -->
+<div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 mb-5 flex justify-around items-center">
+<div>
+<span class="text-[10px] uppercase text-slate-500 font-bold block">Distance</span>
+<span class="teko text-3xl font-black text-amber-300 leading-none" id="final-score">0 m</span>
+</div>
+<div class="h-8 w-px bg-slate-800"></div>
+<div>
+<span class="text-[10px] uppercase text-slate-500 font-bold block">Coins Collected</span>
+<span class="teko text-3xl font-black text-yellow-400 leading-none" id="final-coins">0</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-2.5">
+<button class="btn-pulse w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black teko text-2xl tracking-wider uppercase box-glow-gold active:scale-95 transition" id="btn-restart">
+          RUN AGAIN
+        </button>
+<button class="w-full py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs tracking-wider uppercase border border-slate-700 active:scale-95 transition" id="btn-menu-from-over">
+          MAIN MENU
+        </button>
+</div>
+</div>
+</div>
+<!-- AUDIO SYNTHESIS ENGINE (Web Audio API - With Magnet & Speed Boost SFX) -->
+<script>
+    class SoundController {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playCoin() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(987.77, now); // B5
+        osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.1); // E6
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      }
+      playMagnetChime() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Resonant electric magnetic shimmer
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.4 + idx * 0.05);
+          gain.gain.setValueAtTime(0.12, now + idx * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.05);
+          osc.stop(now + 0.65);
+        });
+      }
+      playSpeedBoost() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Futuristic supersonic warp whoosh
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(120, now);
+        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.35);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(240, now);
+        osc2.frequency.exponentialRampToValueAtTime(1400, now + 0.4);
+
+       
